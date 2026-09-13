@@ -1,0 +1,1250 @@
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                    FLING THINGS AND PEOPLE - EBOLA V2
+--                    Deobfuscated from Luraph Obfuscation
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local SoundService = game:GetService("SoundService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              CONFIGURATION
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local Config = {
+    -- Anti Tamper
+    ANTITAMPER = true,
+    MISKAMUSKAEBOLAREAL = true,
+    
+    -- Kick Settings
+    KickPower = 5000,
+    KickHeight = 25,
+    CustomKickHeight = false,
+    selectedKickPlayer = nil,
+    EBOLA_SelectedKickPlayer = nil,
+    
+    -- Blobman Settings
+    BlobmanKickEnabled = false,
+    AutoSitBlobman = false,
+    AntiBlobman = false,
+    AntiBlobmanAura = false,
+    
+    -- Grab Settings
+    GrabReachEnabled = false,
+    GrabReachDistance = 30,
+    MasslessGrab = false,
+    NoclipGrab = false,
+    AnchorGrab = false,
+    UnweldGrab = false,
+    InvisibleGrab = false,
+    HeavyObjectsGrab = false,
+    RagdollGrab = false,
+    
+    -- Ownership Settings
+    OwnershipKickEnabled = false,
+    SetNetworkOwner = true,
+    SetNetOwnerDelay = 0.03,
+    ForcePositionThreshold = 5000,
+    GrabTimeout = 5,
+    MaxGrabAttempts = 10,
+    ReturnWait = 0.1,
+    
+    -- Explosion Settings
+    ExplosionType = "Missile",
+    AutoExplosionEnabled = false,
+    ExplosionAmount = 1,
+    ExplosionInterval = 0.5,
+    ExplosionColorEnabled = false,
+    RainbowExplosionEnabled = false,
+    ExplosionBrightness = 1,
+    ParticleSize = 1,
+    ParticleSpeed = 1,
+    ParticleLifetime = 1,
+    ParticleDensity = 1,
+    ParticleTransparency = 0,
+    TransparentExplosionEnabled = false,
+    InvertColorEnabled = false,
+    
+    -- Visuals
+    RainbowPlayerESP = false,
+    EnablePlayerESP = false,
+    espColor = Color3.fromRGB(255, 0, 0),
+    pcldEnabled = false,
+    pcldRainbow = false,
+    pcldColor = Color3.fromRGB(255, 0, 0),
+    
+    -- Movement
+    FlySpeed = 50,
+    WalkSpeed = 16,
+    JumpPower = 50,
+    SpinSpeed = 10,
+    SpinCharacterEnabled = false,
+    FlightEnabled = false,
+    PlatformTP = false,
+    
+    -- Defense
+    AntiGrab = false,
+    AntiGrabMode = "Normal",
+    AntiRagdoll = false,
+    AntiFire = false,
+    AntiBurn = false,
+    AntiVoid = false,
+    AntiLag = false,
+    AntiPaint = false,
+    AntiExplosion = false,
+    AntiKick = false,
+    AntiKickItem = false,
+    AntiOwnershipKick = false,
+    AutoReset = false,
+    AutoLeave = false,
+    SafetyLeave = false,
+    
+    -- Notifications
+    JoinNotifications = false,
+    LeaveNotifications = false,
+    KickNotifications = false,
+    
+    -- Misc
+    FreeGamepass = false,
+    WaterWalk = false,
+    Noclip = false,
+    InfJump = false,
+    AutoFarm = false,
+    AutoSpinSlots = false,
+    AutoRagdoll = false,
+    AutoSitBlobman = false,
+    
+    -- Line Lag
+    LineLagEnabled = false,
+    LineLagLevel = 1,
+    LineAmount = 10,
+    
+    -- Packet Lag
+    PacketLagEnabled = false,
+    PacketLagStrength = 1,
+    PacketLagSize = 1,
+    PacketSize = 1,
+    
+    -- Loop Settings
+    LoopKillEnabled = false,
+    LoopBringEnabled = false,
+    LoopRagdollEnabled = false,
+    LoopKickEnabled = false,
+    LoopBananaRagdoll = false,
+    LoopSnowball = false,
+    LoopTP = false,
+    LoopExplode = false,
+    
+    -- Blobman Orbit
+    OrbitKickEnabled = false,
+    OrbitRadius = 10,
+    OrbitSpeed = 1,
+    OrbitWorldX = 0,
+    OrbitWorldY = 0,
+    OrbitWorldZ = 0,
+    
+    -- Sparkler
+    SparklerEnabled = false,
+    SparklerShape = "Sphere",
+    SparklerHeight = 5,
+    SparklerSpeed = 1,
+    SparklerRadius = 5,
+    CurrentShape = "Sphere",
+    
+    -- Shapes
+    Shapes = {
+        "Sphere", "Box", "Cylinder", "Heart", "Star", "Planet",
+        "Double Ring", "Torus Knot", "Möbius Strip", "Saturn",
+        "Ice Cube", "Trefoil", "Klein Bottle Slice", "DNA Helix",
+        "Fibonacci Spiral", "Triple Helix", "Tornado", "Galaxy Spiral",
+        "Black Hole", "Hyper Sphere", "Orbital Rings", "Flower Bloom",
+        "Crystal Bloom", "Arc Discharge", "Event Horizon", "Quantum Lattice",
+        "Neutron Burst", "Plasma Cage", "Shockwave", "Wormhole",
+        "Seashell", "Rose Petal", "Snowflake", "Butterfly", "Jellyfish",
+        "Coral Reef", "Lissajous", "Hypotrochoid", "Epitrochoid",
+        "Harmonograph", "Vortex Funnel", "Rounded Cube", "Torus",
+        "Spring Coil", "Infinity"
+    },
+    
+    -- Explosion Types
+    ExplosionTypes = {
+        "Missile", "Firework", "Void", "Balloon", "Small Present",
+        "Big Present", "Black Hole"
+    },
+    
+    -- Toys
+    ToyList = {
+        "Hamburger", "Pizza", "Hotdog", "Donut", "Cake", "Coconut",
+        "Banana", "Fries", "MeatStick", "Egg", "Mayo", "WhiteMug",
+        "BrownMug", "Mushroom", "Bread", "Burger", "CheesePizza",
+        "Pepperoni", "Blobman", "Train", "Tractor", "SantaSleigh",
+        "Pencil", "SprayCan", "JapaneseLantern", "SpookyCandle",
+        "Balloon", "Missile", "Firework", "DarkMatter", "Present",
+        "Ukulele", "Sax", "Vuvuzela", "Bongos", "Mic", "Piano",
+        "Banjo", "Violin", "Ocarina", "Trumpet", "Snare", "Lyre"
+    },
+    
+    -- Animation Presets
+    Presets = {},
+    CustomPresets = {},
+    
+    -- Toggles
+    toggles = {},
+    
+    -- Keybinds
+    ControlKey = "V",
+    TPKey = "X",
+    DogPoseKey = "T",
+    DogPoseKey2 = "Y",
+    SitBlobmanKey = "Z",
+    
+    -- Blobman Kick Methods
+    BlobmanMethods = {
+        "Non-Blobman Methods",
+        "Blobman Kick"
+    },
+    SelectedBlobmanMethod = "Blobman Kick"
+}
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              CONNECTIONS STORAGE
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local connections = {}
+local espConnections = {}
+local espObjects = {}
+local pcldConnections = {}
+local pcldBoxes = {}
+local activeSparklers = {}
+local killedTargets = {}
+local frozenCFrames = {}
+local ragdollConnections = {}
+local loopThreads = {}
+local flightConnection = nil
+local blobmanSeatConnection = nil
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              UTILITY FUNCTIONS
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function notify(title, content, duration)
+    duration = duration or 3
+    print(string.format("[EBOLA] %s: %s", title, content))
+    
+    -- If you have a notification library, use it here
+    -- Example: OrionLib:MakeNotification({Title = title, Content = content, Duration = duration})
+end
+
+local function getPlayerCharacterLocal(player)
+    if not player then return nil end
+    return player.Character
+end
+
+local function getCharParts(char)
+    if not char then return nil, nil end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    return hum, hrp
+end
+
+local function getAllPlayers()
+    local list = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(list, p)
+        end
+    end
+    return list
+end
+
+local function refreshPlayerList()
+    local list = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(list, string.format("%s (@%s)", p.DisplayName, p.Name))
+        end
+    end
+    return list
+end
+
+local function resolveSender(name)
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Name == name or p.DisplayName == name then
+            return string.format("%s (@%s)", p.DisplayName, p.Name)
+        end
+    end
+    return name .. " (You)"
+end
+
+local function shortenString(str, maxLen)
+    maxLen = maxLen or 50
+    if #str <= maxLen then return str end
+    return str:sub(1, maxLen) .. "... (+" .. (#str - maxLen) .. " chars)"
+end
+
+local function summarizeTable(tbl)
+    if type(tbl) ~= "table" then return tostring(tbl) end
+    local items = {}
+    local count = 0
+    for k, v in pairs(tbl) do
+        count = count + 1
+        if count > 5 then
+            table.insert(items, "...")
+            break
+        end
+        local key = type(k) == "string" and k:sub(1, 20) or tostring(k)
+        local val = type(v) == "string" and shortenString(v, 30) or tostring(v)
+        table.insert(items, key .. ": " .. val)
+    end
+    return "table[" .. #items .. "] { " .. table.concat(items, ", ") .. " }"
+end
+
+local function compressArgs(args)
+    if type(args) ~= "table" then return shortenString(tostring(args)) end
+    local lines = {}
+    for i, v in ipairs(args) do
+        local line = string.format("  [%d] %s: %s", i, type(v), 
+            type(v) == "table" and summarizeTable(v) or shortenString(tostring(v), 100))
+        table.insert(lines, line)
+    end
+    return "Args:\n" .. table.concat(lines, "\n")
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              NETWORK & OWNERSHIP
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local GrabEvents = ReplicatedStorage:WaitForChild("GrabEvents", 5)
+local SetNetworkOwner = GrabEvents and GrabEvents:FindFirstChild("SetNetworkOwner")
+local DestroyGrabLine = GrabEvents and GrabEvents:FindFirstChild("DestroyGrabLine")
+local CreateGrabLine = GrabEvents and GrabEvents:FindFirstChild("CreateGrabLine")
+local EndGrabEarly = GrabEvents and GrabEvents:FindFirstChild("EndGrabEarly")
+
+local function setNetworkOwner(part, player)
+    if not part or not SetNetworkOwner then return false end
+    local success = pcall(function()
+        SetNetworkOwner:FireServer(part, player or LocalPlayer)
+    end)
+    return success
+end
+
+local function destroyGrabLine()
+    if DestroyGrabLine then
+        pcall(function()
+            DestroyGrabLine:FireServer()
+        end)
+    end
+end
+
+local function createGrabLine(targetPart)
+    if not targetPart or not CreateGrabLine then return false end
+    local success = pcall(function()
+        CreateGrabLine:FireServer(targetPart)
+    end)
+    return success
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              KICK SYSTEM
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function kickPlayer(player, method)
+    if not player or player == LocalPlayer then return end
+    if not player.Character then return end
+    
+    local char = player.Character
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    notify("Kick", "Kicking " .. player.Name .. " using " .. (method or "default"))
+    
+    -- Method 1: Network Ownership Fling
+    if method == "Ownership" or method == nil then
+        -- Claim ownership
+        setNetworkOwner(hrp)
+        
+        -- Apply massive velocity
+        for i = 1, 10 do
+            pcall(function()
+                hrp.Velocity = Vector3.new(
+                    math.random(-5000, 5000),
+                    5000,
+                    math.random(-5000, 5000)
+                )
+                hrp.AssemblyLinearVelocity = Vector3.new(
+                    math.random(-5000, 5000),
+                    5000,
+                    math.random(-5000, 5000)
+                )
+                hrp.AssemblyAngularVelocity = Vector3.new(
+                    math.random(-1000, 1000),
+                    math.random(-1000, 1000),
+                    math.random(-1000, 1000)
+                )
+            end)
+            task.wait(0.05)
+        end
+        
+        -- Create align position to fling
+        local alignPos = Instance.new("AlignPosition")
+        alignPos.Mode = Enum.PositionAlignmentMode.OneAttachment
+        alignPos.MaxForce = math.huge
+        alignPos.MaxVelocity = math.huge
+        alignPos.Responsiveness = 200
+        
+        local attachment = Instance.new("Attachment", hrp)
+        alignPos.Attachment0 = attachment
+        alignPos.Parent = hrp
+        
+        -- Move to void
+        alignPos.Position = hrp.Position + Vector3.new(0, 1000, 0)
+        
+        task.delay(1, function()
+            pcall(function()
+                alignPos:Destroy()
+                attachment:Destroy()
+            end)
+        end)
+    end
+    
+    -- Method 2: Blobman Kick (if applicable)
+    if method == "Blobman" then
+        local blobman = Workspace:FindFirstChild("CreatureBlobman", true)
+        if blobman then
+            -- Sit on blobman and kick
+            local seat = blobman:FindFirstChildOfClass("VehicleSeat")
+            if seat then
+                local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    seat:Sit(hum)
+                    task.wait(0.5)
+                    -- Now kick the target
+                    kickPlayer(player, "Ownership")
+                end
+            end
+        end
+    end
+end
+
+local function kickAll()
+    notify("Kick All", "Initiating mass kick...")
+    for _, player in ipairs(getAllPlayers()) do
+        task.spawn(function()
+            kickPlayer(player, "Ownership")
+        end)
+        task.wait(0.1)
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              BLOBMAN SYSTEM
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function spawnBlobman()
+    local SpawnToyRF = ReplicatedStorage:WaitForChild("SpawnToyRemoteFunction", 5)
+    if not SpawnToyRF then
+        notify("Error", "SpawnToyRemoteFunction not found")
+        return
+    end
+    
+    local success = pcall(function()
+        SpawnToyRF:InvokeServer("CreatureBlobman")
+    end)
+    
+    if success then
+        notify("Blobman", "Spawned blobman successfully")
+    else
+        notify("Error", "Failed to spawn blobman")
+    end
+end
+
+local function sitOnBlobman()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    
+    -- Find blobman
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj.Name == "CreatureBlobman" then
+            local seat = obj:FindFirstChildOfClass("VehicleSeat")
+            if seat and not seat.Occupant then
+                seat:Sit(hum)
+                notify("Blobman", "Sat on blobman")
+                return true
+            end
+        end
+    end
+    
+    notify("Error", "No available blobman found")
+    return false
+end
+
+local function blobmanKick(player)
+    if not player then
+        notify("Error", "Select a target first")
+        return
+    end
+    
+    -- Spawn blobman if needed
+    spawnBlobman()
+    task.wait(0.5)
+    
+    -- Sit on blobman
+    if sitOnBlobman() then
+        task.wait(0.3)
+        -- Grab and kick the target
+        local char = player.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                createGrabLine(hrp)
+                task.wait(0.5)
+                kickPlayer(player, "Ownership")
+            end
+        end
+    end
+end
+
+local function blobmanKickAll()
+    notify("Blobman", "Kicking all players with blobman...")
+    for _, player in ipairs(getAllPlayers()) do
+        task.spawn(function()
+            blobmanKick(player)
+        end)
+        task.wait(1) -- Delay between each to allow blobman spawning
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              ANTI SYSTEMS
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function enableAntiGrab()
+    if Config.AntiGrab then return end
+    Config.AntiGrab = true
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Create anti-grab part
+    local agPart = Instance.new("Part")
+    agPart.Name = "AntiGrabPart"
+    agPart.Size = Vector3.new(10, 10, 10)
+    agPart.Transparency = 1
+    agPart.CanCollide = false
+    agPart.Anchored = true
+    agPart.Parent = Workspace
+    
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = agPart
+    weld.Part1 = hrp
+    weld.Parent = agPart
+    
+    -- Keep it updated
+    local conn = RunService.Heartbeat:Connect(function()
+        if not agPart.Parent or not hrp.Parent then
+            agPart:Destroy()
+            return
+        end
+        agPart.CFrame = hrp.CFrame
+    end)
+    
+    table.insert(connections, conn)
+    notify("Anti Grab", "Enabled")
+end
+
+local function disableAntiGrab()
+    Config.AntiGrab = false
+    -- Cleanup would go here
+    notify("Anti Grab", "Disabled")
+end
+
+local function enableAntiRagdoll()
+    if Config.AntiRagdoll then return end
+    Config.AntiRagdoll = true
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    
+    hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+    
+    notify("Anti Ragdoll", "Enabled")
+end
+
+local function enableAntiVoid()
+    if Config.AntiVoid then return end
+    Config.AntiVoid = true
+    
+    local conn = Workspace:GetPropertyChangedSignal("FallenPartsDestroyHeight"):Connect(function()
+        Workspace.FallenPartsDestroyHeight = -500
+    end)
+    Workspace.FallenPartsDestroyHeight = -500
+    
+    table.insert(connections, conn)
+    notify("Anti Void", "Enabled - FallenPartsDestroyHeight set to -500")
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              FLIGHT SYSTEM
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function enableFlight()
+    if Config.FlightEnabled then return end
+    Config.FlightEnabled = true
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+    
+    -- Create body movers
+    local bg = Instance.new("BodyGyro")
+    bg.Name = "FlightGyro"
+    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bg.P = 10000
+    bg.Parent = hrp
+    
+    local bv = Instance.new("BodyVelocity")
+    bv.Name = "FlightVelocity"
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.Velocity = Vector3.zero
+    bv.Parent = hrp
+    
+    -- Flight loop
+    flightConnection = RunService.Heartbeat:Connect(function()
+        if not hrp.Parent or not Config.FlightEnabled then
+            disableFlight()
+            return
+        end
+        
+        local camCF = Camera.CFrame
+        local moveDir = Vector3.zero
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveDir = moveDir + camCF.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveDir = moveDir - camCF.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDir = moveDir - camCF.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveDir = moveDir + camCF.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            moveDir = moveDir + Vector3.new(0, 1, 0)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+            moveDir = moveDir - Vector3.new(0, 1, 0)
+        end
+        
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit * Config.FlySpeed
+        end
+        
+        bv.Velocity = moveDir
+        bg.CFrame = camCF
+    end)
+    
+    hum.PlatformStand = true
+    notify("Flight", "Enabled - Use WASD, Space, and Shift to fly")
+end
+
+local function disableFlight()
+    Config.FlightEnabled = false
+    
+    if flightConnection then
+        flightConnection:Disconnect()
+        flightConnection = nil
+    end
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Remove body movers
+    for _, obj in ipairs(hrp:GetChildren()) do
+        if obj.Name == "FlightGyro" or obj.Name == "FlightVelocity" then
+            obj:Destroy()
+        end
+    end
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.PlatformStand = false
+    end
+    
+    notify("Flight", "Disabled")
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              ESP SYSTEM
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function createESP(player)
+    if not player or player == LocalPlayer then return end
+    if espObjects[player] then return end
+    
+    local char = player.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Create highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_Highlight"
+    highlight.Adornee = char
+    highlight.FillColor = Config.espColor
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Parent = CoreGui
+    
+    -- Create billboard
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_Billboard"
+    billboard.Adornee = hrp
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = CoreGui
+    
+    local label = Instance.new("TextLabel")
+    label.Name = "ESP_Label"
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = string.format("%s (@%s)", player.DisplayName, player.Name)
+    label.TextColor3 = Config.espColor
+    label.TextStrokeTransparency = 0
+    label.TextStrokeColor3 = Color3.new(0, 0, 0)
+    label.Font = Enum.Font.GothamBold
+    label.TextScaled = true
+    label.Parent = billboard
+    
+    espObjects[player] = {
+        highlight = highlight,
+        billboard = billboard,
+        label = label
+    }
+end
+
+local function removeAllESP()
+    for player, objects in pairs(espObjects) do
+        if objects.highlight then objects.highlight:Destroy() end
+        if objects.billboard then objects.billboard:Destroy() end
+    end
+    espObjects = {}
+end
+
+local function updateESP()
+    if Config.RainbowPlayerESP then
+        local hue = tick() % 5 / 5
+        Config.espColor = Color3.fromHSV(hue, 1, 1)
+    end
+    
+    for player, objects in pairs(espObjects) do
+        if objects.highlight then
+            objects.highlight.FillColor = Config.espColor
+        end
+        if objects.label then
+            objects.label.TextColor3 = Config.espColor
+        end
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              PCLD SYSTEM (PLAYER LOCATION DETECTOR)
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function createPCLDBox(part)
+    if not part or not Config.pcldEnabled then return end
+    
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "PCLD_Box"
+    box.Adornee = part
+    box.Size = part.Size + Vector3.new(0.1, 0.1, 0.1)
+    box.Color3 = Config.pcldColor
+    box.Transparency = 0.5
+    box.AlwaysOnTop = true
+    box.ZIndex = 5
+    box.Parent = game.CoreGui
+    
+    table.insert(pcldBoxes, box)
+    
+    local conn = part.AncestryChanged:Connect(function()
+        if not part:IsDescendantOf(Workspace) then
+            box:Destroy()
+        end
+    end)
+    
+    table.insert(pcldConnections, conn)
+end
+
+local function scanPCLD()
+    if not Config.pcldEnabled then return end
+    
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name == "TruePositionPart" then
+            createPCLDBox(obj)
+        end
+    end
+end
+
+local function removeAllPCLD()
+    for _, box in ipairs(pcldBoxes) do
+        if box then box:Destroy() end
+    end
+    pcldBoxes = {}
+    
+    for _, conn in ipairs(pcldConnections) do
+        if conn then conn:Disconnect() end
+    end
+    pcldConnections = {}
+end
+
+local function updatePCLDColors()
+    if Config.pcldRainbow then
+        local hue = tick() % 5 / 5
+        Config.pcldColor = Color3.fromHSV(hue, 1, 1)
+    end
+    
+    for _, box in ipairs(pcldBoxes) do
+        if box then
+            box.Color3 = Config.pcldColor
+        end
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              SPARKLER SYSTEM
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local shapeOffsets = {
+    Sphere = function(t, config)
+        local angle = t * math.pi * 2
+        return Vector3.new(
+            math.cos(angle) * config.Radius,
+            math.sin(t * 5) * config.Height,
+            math.sin(angle) * config.Radius
+        )
+    end,
+    Box = function(t, config)
+        local x = math.cos(t * math.pi * 2) * config.Radius
+        local z = math.sin(t * math.pi * 2) * config.Radius
+        return Vector3.new(x, math.sin(t * 10) * config.Height, z)
+    end,
+    Cylinder = function(t, config)
+        local angle = t * math.pi * 2
+        return Vector3.new(
+            math.cos(angle) * config.Radius,
+            t * config.Height * 2 - config.Height,
+            math.sin(angle) * config.Radius
+        )
+    end,
+    Heart = function(t, config)
+        local angle = t * math.pi * 2
+        local x = 16 * math.sin(angle)^3
+        local y = 13 * math.cos(angle) - 5 * math.cos(2*angle) - 2 * math.cos(3*angle) - math.cos(4*angle)
+        return Vector3.new(x * config.Radius/16, y * config.Height/16, 0)
+    end,
+    Star = function(t, config)
+        local angle = t * math.pi * 2
+        local r = config.Radius * (1 + 0.5 * math.sin(5 * angle))
+        return Vector3.new(
+            math.cos(angle) * r,
+            math.sin(t * 10) * config.Height,
+            math.sin(angle) * r
+        )
+    end,
+    Planet = function(t, config)
+        local angle = t * math.pi * 2
+        local tilt = math.rad(23.5)
+        local x = math.cos(angle) * config.Radius
+        local z = math.sin(angle) * config.Radius
+        local y = math.sin(t * 5) * config.Height
+        return Vector3.new(x, y * math.cos(tilt) - z * math.sin(tilt), z)
+    end
+}
+
+local function setupSparkler(obj)
+    if not obj then return end
+    
+    local primaryPart = obj:FindFirstChildOfClass("BasePart") or obj.PrimaryPart
+    if not primaryPart then return end
+    
+    local config = {
+        Shape = Config.CurrentShape,
+        Speed = Config.SparklerSpeed,
+        Height = Config.SparklerHeight,
+        Radius = Config.SparklerRadius
+    }
+    
+    local bp = Instance.new("BodyPosition")
+    bp.Name = "SparklerBP"
+    bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bp.P = 10000
+    bp.D = 1000
+    bp.Parent = primaryPart
+    
+    local bg = Instance.new("BodyGyro")
+    bg.Name = "SparklerBG"
+    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bg.P = 10000
+    bg.Parent = primaryPart
+    
+    table.insert(activeSparklers, {
+        obj = obj,
+        bp = bp,
+        bg = bg,
+        startTime = tick()
+    })
+end
+
+local function updateSparklers()
+    for i, sparkler in ipairs(activeSparklers) do
+        if not sparkler.obj.Parent then
+            if sparkler.bp then sparkler.bp:Destroy() end
+            if sparkler.bg then sparkler.bg:Destroy() end
+            table.remove(activeSparklers, i)
+            continue
+        end
+        
+        local offsetFunc = shapeOffsets[Config.CurrentShape] or shapeOffsets.Sphere
+        local t = (tick() - sparkler.startTime) * Config.SparklerSpeed
+        
+        local offset = offsetFunc(t, {
+            Radius = Config.SparklerRadius,
+            Height = Config.SparklerHeight,
+            Speed = Config.SparklerSpeed
+        })
+        
+        if sparkler.bp then
+            sparkler.bp.Position = LocalPlayer.Character and 
+                LocalPlayer.Character:GetPivot().Position + offset or 
+                Vector3.zero
+        end
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              EXPLOSION SYSTEM
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function getSpawnedToys()
+    local toys = {}
+    local spawnFolder = Workspace:FindFirstChild("SpawnedInToys")
+    if spawnFolder then
+        for _, obj in ipairs(spawnFolder:GetChildren()) do
+            table.insert(toys, obj)
+        end
+    end
+    return toys
+end
+
+local function getAllBombs()
+    local bombs = {}
+    local spawnFolder = Workspace:FindFirstChild("SpawnedInToys")
+    if spawnFolder then
+        for _, obj in ipairs(spawnFolder:GetChildren()) do
+            if obj.Name:find("Bomb") or obj.Name:find("Missile") then
+                table.insert(bombs, obj)
+            end
+        end
+    end
+    return bombs
+end
+
+local function explodeBomb(bomb)
+    if not bomb then return end
+    
+    local explosionMaker = bomb:FindFirstChild("ExplosionMaker")
+    if explosionMaker then
+        -- Trigger explosion
+        local particlePresets = explosionMaker:FindFirstChild("ParticlePresets")
+        if particlePresets then
+            for _, emitter in ipairs(particlePresets:GetChildren()) do
+                if emitter:IsA("ParticleEmitter") then
+                    emitter:Emit(Config.ExplosionAmount)
+                end
+            end
+        end
+    end
+    
+    -- Also try to use remote if available
+    local bombEvents = ReplicatedStorage:FindFirstChild("BombEvents")
+    if bombEvents then
+        local explodeRemote = bombEvents:FindFirstChild("ExplodeBomb")
+        if explodeRemote then
+            explodeRemote:FireServer(bomb)
+        end
+    end
+end
+
+local function deleteAllBombs()
+    for _, bomb in ipairs(getAllBombs()) do
+        local destroyToy = ReplicatedStorage:FindFirstChild("DestroyToy")
+        if destroyToy then
+            destroyToy:FireServer(bomb)
+        else
+            bomb:Destroy()
+        end
+    end
+    notify("Explosion", "Deleted all bombs")
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              LOOP SYSTEMS
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function startLoopKill()
+    if Config.LoopKillEnabled then return end
+    Config.LoopKillEnabled = true
+    
+    local thread = task.spawn(function()
+        while Config.LoopKillEnabled do
+            local target = Config.selectedKickPlayer and Players:FindFirstChild(Config.selectedKickPlayer)
+            if target and target.Character then
+                kickPlayer(target, "Ownership")
+            end
+            task.wait(Config.LoopDelay or 1)
+        end
+    end)
+    
+    table.insert(loopThreads, thread)
+    notify("Loop Kill", "Started")
+end
+
+local function stopLoopKill()
+    Config.LoopKillEnabled = false
+    notify("Loop Kill", "Stopped")
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              MAIN INITIALIZATION
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local function initialize()
+    notify("EBOLA V2", "Script loaded successfully")
+    
+    -- Setup character connections
+    LocalPlayer.CharacterAdded:Connect(function(char)
+        -- Re-apply enabled features
+        if Config.AntiRagdoll then
+            enableAntiRagdoll()
+        end
+        if Config.AntiVoid then
+            enableAntiVoid()
+        end
+    end)
+    
+    -- Main update loop
+    RunService.Heartbeat:Connect(function()
+        -- Update ESP colors
+        if Config.RainbowPlayerESP then
+            updateESP()
+        end
+        
+        -- Update PCLD colors
+        if Config.pcldRainbow then
+            updatePCLDColors()
+        end
+        
+        -- Update sparklers
+        if #activeSparklers > 0 then
+            updateSparklers()
+        end
+    end)
+    
+    -- Player added for ESP
+    Players.PlayerAdded:Connect(function(player)
+        if Config.EnablePlayerESP then
+            createESP(player)
+        end
+        if Config.JoinNotifications then
+            notify("Join", player.Name .. " joined the game")
+        end
+    end)
+    
+    -- Player removing
+    Players.PlayerRemoving:Connect(function(player)
+        if espObjects[player] then
+            removeAllESP()
+        end
+        if Config.LeaveNotifications then
+            notify("Leave", player.Name .. " left the game")
+        end
+    end)
+    
+    -- Initial ESP setup
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and Config.EnablePlayerESP then
+            createESP(player)
+        end
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              COMMAND INTERFACE
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local Commands = {
+    kick = function(args)
+        local targetName = args[1]
+        if not targetName then
+            notify("Error", "Usage: kick <player_name>")
+            return
+        end
+        
+        local target = Players:FindFirstChild(targetName)
+        if target then
+            kickPlayer(target, "Ownership")
+        else
+            notify("Error", "Player not found: " .. targetName)
+        end
+    end,
+    
+    kickall = function()
+        kickAll()
+    end,
+    
+    blobkick = function(args)
+        local targetName = args[1]
+        if not targetName then
+            notify("Error", "Usage: blobkick <player_name>")
+            return
+        end
+        
+        local target = Players:FindFirstChild(targetName)
+        if target then
+            blobmanKick(target)
+        else
+            notify("Error", "Player not found: " .. targetName)
+        end
+    end,
+    
+    blobkickall = function()
+        blobmanKickAll()
+    end,
+    
+    fly = function()
+        if Config.FlightEnabled then
+            disableFlight()
+        else
+            enableFlight()
+        end
+    end,
+    
+    noclip = function()
+        Config.Noclip = not Config.Noclip
+        notify("Noclip", Config.Noclip and "Enabled" or "Disabled")
+    end,
+    
+    esp = function()
+        Config.EnablePlayerESP = not Config.EnablePlayerESP
+        if Config.EnablePlayerESP then
+            for _, player in ipairs(Players:GetPlayers()) do
+                createESP(player)
+            end
+        else
+            removeAllESP()
+        end
+        notify("ESP", Config.EnablePlayerESP and "Enabled" or "Disabled")
+    end,
+    
+    antigrab = function()
+        if Config.AntiGrab then
+            disableAntiGrab()
+        else
+            enableAntiGrab()
+        end
+    end,
+    
+    antiragdoll = function()
+        Config.AntiRagdoll = not Config.AntiRagdoll
+        if Config.AntiRagdoll then
+            enableAntiRagdoll()
+        end
+        notify("Anti Ragdoll", Config.AntiRagdoll and "Enabled" or "Disabled")
+    end,
+    
+    rejoin = function()
+        local TeleportService = game:GetService("TeleportService")
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+    end,
+    
+    reset = function()
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.Health = 0
+            end
+        end
+    end
+}
+
+-- Chat command handler
+LocalPlayer.Chatted:Connect(function(message)
+    if message:sub(1, 1) == "!" then
+        local args = {}
+        for arg in message:sub(2):gmatch("%S+") do
+            table.insert(args, arg)
+        end
+        
+        local cmd = table.remove(args, 1)
+        if Commands[cmd] then
+            Commands[cmd](args)
+        end
+    end
+end)
+
+-- Initialize
+initialize()
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--                              RETURN STATEMENT
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+return {
+    Config = Config,
+    kickPlayer = kickPlayer,
+    kickAll = kickAll,
+    blobmanKick = blobmanKick,
+    blobmanKickAll = blobmanKickAll,
+    enableFlight = enableFlight,
+    disableFlight = disableFlight,
+    createESP = createESP,
+    removeAllESP = removeAllESP,
+    enableAntiGrab = enableAntiGrab,
+    disableAntiGrab = disableAntiGrab,
+    spawnBlobman = spawnBlobman,
+    sitOnBlobman = sitOnBlobman,
+    explodeBomb = explodeBomb,
+    deleteAllBombs = deleteAllBombs,
+    Commands = Commands
+}
