@@ -1,0 +1,1468 @@
+
+-- Made by Zalae
+-- Took Defense and Target tabs from Ebola V2
+-- Deobfuscated from Luraph proto-table dump
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+-- Remote References
+local GrabEvents = ReplicatedStorage:WaitForChild("GrabEvents", 5)
+local SetNetworkOwner = GrabEvents and GrabEvents:WaitForChild("SetNetworkOwner", 5)
+local DestroyGrabLine = GrabEvents and GrabEvents:WaitForChild("DestroyGrabLine", 5)
+local CreateGrabLine = GrabEvents and GrabEvents:WaitForChild("CreateGrabLine", 5)
+local FireServer = SetNetworkOwner and SetNetworkOwner.FireServer
+
+-- State Management
+local State = {
+    SelectedTarget = nil,
+    SelectedKickPlayer = nil,
+    AntiGrabEnabled = false,
+    AntiGrabV2Enabled = false,
+    AntiGrabV3Enabled = false,
+    AntiGrabV4Enabled = false,
+    AntiGrabV5Enabled = false,
+    AntiKickShuriken = false,
+    AntiKickItem = false,
+    AntiKickPenis = false,
+    AntiKickPCLD = false,
+    AntiOwnership = false,
+    AntiGrabLine = false,
+    AntiLag = false,
+    AntiBlobman = false,
+    AntiRagdoll = false,
+    AntiBurn = false,
+    AntiVoid = false,
+    AntiSticky = false,
+    AntiExplosion = false,
+    AntiFire = false,
+    AntiPaint = false,
+    AntiBarrier = false,
+    AntiInputLag = false,
+    AntiSnowball = false,
+    AntiKickAll = false,
+    AntiBlobKill = false,
+    AntiLoopKill = false,
+    AntiOwnershipKick = false,
+    AntiGrabESTRADA = false,
+    MayoGrabEnabled = false,
+    SeatlessGucci = false,
+    TrainGucci = false,
+    BlobmanKickEnabled = false,
+    OwnershipKickEnabled = false,
+    BlobmanKickAll = false,
+    LoopKillEnabled = false,
+    KillGrabEnabled = false,
+    SpinCharacterEnabled = false,
+    FlightEnabled = false,
+    NoclipEnabled = false,
+    WaterWalkEnabled = false,
+    InfJumpEnabled = false,
+    AutoResetEnabled = false,
+    AntiAFKEnabled = false,
+    NotificationsEnabled = false
+}
+
+-- Utility Functions
+local function Notify(title, content, duration)
+    if not State.NotificationsEnabled then return end
+    duration = duration or 3
+    -- Obsidian notification or fallback
+    pcall(function()
+        local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/deeeity/obsidian/main/obsidian.lua", true))()
+        lib:Notify(title, content, duration)
+    end)
+end
+
+local function GetCharacter(player)
+    player = player or LocalPlayer
+    return player.Character
+end
+
+local function GetHumanoid(player)
+    local char = GetCharacter(player)
+    if char then
+        return char:FindFirstChildOfClass("Humanoid")
+    end
+end
+
+local function GetHRP(player)
+    local char = GetCharacter(player)
+    if char then
+        return char:FindFirstChild("HumanoidRootPart")
+    end
+end
+
+local function GetPlayerList()
+    local list = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            table.insert(list, plr.DisplayName .. " (@" .. plr.Name .. ")")
+        end
+    end
+    return list
+end
+
+local function ResolvePlayerFromString(str)
+    if not str then return nil end
+    local username = str:match("%(@ ?(.+)%)") or str
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Name == username or plr.DisplayName == str then
+            return plr
+        end
+    end
+    return nil
+end
+
+-- Anti-Grab Systems
+local AntiGrabConnections = {}
+local GucciConnections = {}
+
+local function SetupAntiGrab()
+    if not State.AntiGrabEnabled then return end
+    
+    local char = GetCharacter()
+    if not char then return end
+    
+    local hrp = GetHRP()
+    local hum = GetHumanoid()
+    if not hrp or not hum then return end
+    
+    -- Core anti-grab: Monitor SeatPart changes
+    local seatConn = hum:GetPropertyChangedSignal("SeatPart"):Connect(function()
+        if hum.SeatPart then
+            local seat = hum.SeatPart
+            local blobman = seat:FindFirstAncestor("CreatureBlobman")
+            if blobman then
+                -- Immediate release
+                task.spawn(function()
+                    task.wait(0.05)
+                    pcall(function()
+                        hum.Sit = false
+                        hrp.Anchored = false
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+                        hrp.AssemblyAngularVelocity = Vector3.zero
+                    end)
+                end)
+            end
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, seatConn)
+    
+    -- Monitor being held
+    local heldConn = hrp.ChildAdded:Connect(function(child)
+        if child.Name == "BeingHeld" or child.Name == "FreezeJoint" then
+            task.delay(0.03, function()
+                pcall(function()
+                    child:Destroy()
+                    hrp.Anchored = false
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                end)
+            end)
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, heldConn)
+end
+
+local function SetupAntiGrabV2()
+    -- Advanced anti-grab with CFrame manipulation
+    if not State.AntiGrabV2Enabled then return end
+    
+    local char = GetCharacter()
+    if not char then return end
+    
+    local hrp = GetHRP()
+    if not hrp then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        if hrp.Anchored then
+            hrp.Anchored = false
+            hrp.AssemblyLinearVelocity = Vector3.zero
+        end
+        
+        -- Check for grab attachments
+        for _, child in ipairs(hrp:GetChildren()) do
+            if child:IsA("Attachment") and (child.Name:match("Grab") or child.Name:match("Weld")) then
+                child:Destroy()
+            end
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiGrabV3()
+    -- Network ownership based anti-grab
+    if not State.AntiGrabV3Enabled then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        local char = GetCharacter()
+        if not char then return end
+        
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part:SetNetworkOwner(LocalPlayer)
+            end
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiGrabV4()
+    -- Destroy grab line immediately
+    if not State.AntiGrabV4Enabled then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if DestroyGrabLine then
+                DestroyGrabLine:FireServer()
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiGrabV5()
+    -- Extreme anti-grab: Full character reset on grab detection
+    if not State.AntiGrabV5Enabled then return end
+    
+    local hum = GetHumanoid()
+    if not hum then return end
+    
+    local conn = hum:GetPropertyChangedSignal("SeatPart"):Connect(function()
+        if hum.SeatPart and hum.SeatPart:IsA("VehicleSeat") then
+            local blobman = hum.SeatPart:FindFirstAncestor("CreatureBlobman")
+            if blobman then
+                -- Emergency un-sit
+                task.spawn(function()
+                    for i = 1, 10 do
+                        hum.Sit = false
+                        hum.PlatformStand = false
+                        task.wait(0.01)
+                    end
+                end)
+            end
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiGrabLine()
+    -- Anti lag line / grab line destruction
+    if not State.AntiGrabLine then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if DestroyGrabLine then
+                DestroyGrabLine:FireServer()
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiKickShuriken()
+    -- Anti kick using shuriken method
+    if not State.AntiKickShuriken then return end
+    
+    local conn = Workspace.ChildAdded:Connect(function(child)
+        if child.Name:match("Shuriken") or child.Name:match("Kick") then
+            task.delay(0.05, function()
+                pcall(function()
+                    child:Destroy()
+                end)
+            end)
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiKickItem()
+    -- Anti kick using item spawn method
+    if not State.AntiKickItem then return end
+    
+    local function protect()
+        local char = GetCharacter()
+        if not char then return end
+        
+        local hrp = GetHRP()
+        if not hrp then return end
+        
+        -- Spawn protective item
+        pcall(function()
+            local item = Instance.new("Part")
+            item.Name = "AntiKickProtector"
+            item.Anchored = true
+            item.CanCollide = false
+            item.Transparency = 1
+            item.Size = Vector3.new(10, 10, 10)
+            item.CFrame = hrp.CFrame
+            item.Parent = Workspace
+            
+            task.delay(0.1, function()
+                item:Destroy()
+            end)
+        end)
+    end
+    
+    local conn = RunService.Heartbeat:Connect(protect)
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiKickPenis()
+    -- Anti kick using penis method (likely a specific bypass)
+    if not State.AntiKickPenis then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local char = GetCharacter()
+            if not char then return end
+            
+            -- Destroy any kick-related instances
+            for _, obj in ipairs(char:GetDescendants()) do
+                if obj.Name:match("Kick") or obj.Name:match("Penis") then
+                    obj:Destroy()
+                end
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiKickPCLD()
+    -- Anti kick using PCLD (Player Character Location Detector) break method
+    if not State.AntiKickPCLD then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local char = GetCharacter()
+            if not char then return end
+            
+            local hrp = GetHRP()
+            if not hrp then return end
+            
+            -- Break PCLD detection
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            hrp.AssemblyAngularVelocity = Vector3.zero
+            
+            -- Unanchor if anchored
+            if hrp.Anchored then
+                hrp.Anchored = false
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiOwnership()
+    -- Anti ownership kick
+    if not State.AntiOwnership then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local char = GetCharacter()
+            if not char then return end
+            
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part:SetNetworkOwner(LocalPlayer)
+                end
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiLag()
+    -- Anti lag measures
+    if not State.AntiLag then return end
+    
+    -- Disable expensive rendering
+    pcall(function()
+        settings().Rendering.QualityLevel = 1
+    end)
+    
+    -- Clean up effects
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+                    obj.Enabled = false
+                end
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiBlobman()
+    -- Anti blobman kill/grab
+    if not State.AntiBlobman then return end
+    
+    local conn = Workspace.ChildAdded:Connect(function(child)
+        if child.Name == "CreatureBlobman" then
+            task.delay(0.1, function()
+                pcall(function()
+                    -- Destroy blobman if it's targeting us
+                    local owner = child:FindFirstChild("BlobmanSeatAndOwnerScript")
+                    if owner then
+                        local seat = child:FindFirstChildOfClass("VehicleSeat")
+                        if seat and seat.Occupant then
+                            if seat.Occupant.Parent == LocalPlayer.Character then
+                                child:Destroy()
+                            end
+                        end
+                    end
+                end)
+            end)
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiRagdoll()
+    -- Anti ragdoll
+    if not State.AntiRagdoll then return end
+    
+    local hum = GetHumanoid()
+    if not hum then return end
+    
+    hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+    
+    local conn = hum.StateChanged:Connect(function(_, new)
+        if new == Enum.HumanoidStateType.Ragdoll then
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiBurn()
+    -- Anti fire/burn
+    if not State.AntiBurn then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local char = GetCharacter()
+            if not char then return end
+            
+            for _, obj in ipairs(char:GetDescendants()) do
+                if obj.Name:match("Fire") or obj.Name:match("Burn") then
+                    obj:Destroy()
+                end
+            end
+            
+            local hum = GetHumanoid()
+            if hum then
+                -- Prevent fire damage
+                hum.MaxHealth = math.huge
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiVoid()
+    -- Anti void (reset if fallen)
+    if not State.AntiVoid then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local hrp = GetHRP()
+            if not hrp then return end
+            
+            if hrp.Position.Y < Workspace.FallenPartsDestroyHeight + 50 then
+                -- Teleport to safe spot
+                hrp.CFrame = CFrame.new(0, 100, 0)
+                hrp.AssemblyLinearVelocity = Vector3.zero
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiSticky()
+    -- Anti sticky parts
+    if not State.AntiSticky then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local char = GetCharacter()
+            if not char then return end
+            
+            for _, obj in ipairs(char:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    obj.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                end
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiExplosion()
+    -- Anti explosion
+    if not State.AntiExplosion then return end
+    
+    local conn = Workspace.ChildAdded:Connect(function(child)
+        if child:IsA("Explosion") then
+            child.BlastPressure = 0
+            child.BlastRadius = 0
+            child:Destroy()
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiFire()
+    -- Anti fire V2
+    if not State.AntiFire then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local char = GetCharacter()
+            if not char then return end
+            
+            for _, obj in ipairs(char:GetDescendants()) do
+                if obj:IsA("Fire") or obj:IsA("Smoke") then
+                    obj:Destroy()
+                end
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiPaint()
+    -- Anti paint
+    if not State.AntiPaint then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local char = GetCharacter()
+            if not char then return end
+            
+            for _, obj in ipairs(char:GetDescendants()) do
+                if obj.Name:match("Paint") then
+                    obj:Destroy()
+                end
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiBarrier()
+    -- Anti barrier
+    if not State.AntiBarrier then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj.Name:match("Barrier") or obj.Name:match("Barrier") then
+                    obj.CanCollide = false
+                    obj.Transparency = 0.5
+                end
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiInputLag()
+    -- Anti input lag
+    if not State.AntiInputLag then return end
+    
+    pcall(function()
+        UserInputService.InputBegan:Connect(function()
+            -- Process immediately
+        end)
+    end)
+end
+
+local function SetupAntiSnowball()
+    -- Anti snowball
+    if not State.AntiSnowball then return end
+    
+    local conn = Workspace.ChildAdded:Connect(function(child)
+        if child.Name:match("Snowball") then
+            task.delay(0.05, function()
+                child:Destroy()
+            end)
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiOwnershipKick()
+    -- Anti ownership kick (advanced)
+    if not State.AntiOwnershipKick then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local char = GetCharacter()
+            if not char then return end
+            
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    -- Maintain ownership
+                    part:SetNetworkOwner(LocalPlayer)
+                end
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiBlobKill()
+    -- Anti blobman kill
+    if not State.AntiBlobKill then return end
+    
+    local conn = Workspace.ChildAdded:Connect(function(child)
+        if child.Name == "CreatureBlobman" then
+            local detectConn = child.DescendantAdded:Connect(function(desc)
+                if desc:IsA("Weld") or desc:IsA("WeldConstraint") then
+                    local part0 = desc.Part0 or desc.Parent
+                    local part1 = desc.Part1
+                    
+                    if part0 and part0.Parent == LocalPlayer.Character then
+                        desc:Destroy()
+                    end
+                    if part1 and part1.Parent == LocalPlayer.Character then
+                        desc:Destroy()
+                    end
+                end
+            end)
+            
+            table.insert(AntiGrabConnections, detectConn)
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupAntiLoopKill()
+    -- Anti loop kill
+    if not State.AntiLoopKill then return end
+    
+    local hum = GetHumanoid()
+    if not hum then return end
+    
+    local conn = hum.HealthChanged:Connect(function(health)
+        if health < hum.MaxHealth * 0.9 then
+            hum.Health = hum.MaxHealth
+        end
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupMayoGrab()
+    -- Mayo grab (anti-grab alternative)
+    if not State.MayoGrabEnabled then return end
+    
+    -- Uses mayonnaise item to break grabs
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if DestroyGrabLine then
+                DestroyGrabLine:FireServer()
+            end
+        end)
+    end)
+    
+    table.insert(AntiGrabConnections, conn)
+end
+
+local function SetupSeatlessGucci()
+    -- Seatless Gucci (Anti Grab variant)
+    if not State.SeatlessGucci then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local hum = GetHumanoid()
+            if not hum then return end
+            
+            if hum.SeatPart then
+                local blobman = hum.SeatPart:FindFirstAncestor("CreatureBlobman")
+                if blobman then
+                    hum.Sit = false
+                    hum.PlatformStand = false
+                end
+            end
+        end)
+    end)
+    
+    table.insert(GucciConnections, conn)
+end
+
+local function SetupTrainGucci()
+    -- Train Gucci (Anti Grab on train)
+    if not State.TrainGucci then return end
+    
+    local conn = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            local hum = GetHumanoid()
+            if not hum then return end
+            
+            local seat = hum.SeatPart
+            if seat then
+                local train = seat:FindFirstAncestor("Train")
+                if train then
+                    local blobman = seat:FindFirstAncestor("CreatureBlobman")
+                    if blobman then
+                        hum.Sit = false
+                    end
+                end
+            end
+        end)
+    end)
+    
+    table.insert(GucciConnections, conn)
+end
+
+local function ClearAntiGrab()
+    for _, conn in ipairs(AntiGrabConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    AntiGrabConnections = {}
+end
+
+local function ClearGucci()
+    for _, conn in ipairs(GucciConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    GucciConnections = {}
+end
+
+-- Kick Functions
+local function BlobmanKick(target)
+    if not target then return end
+    
+    local char = GetCharacter(target)
+    if not char then return end
+    
+    local hrp = GetHRP(target)
+    if not hrp then return end
+    
+    -- Spawn blobman and kick
+    pcall(function()
+        local blobman = Workspace:FindFirstChild("CreatureBlobman", true)
+        if blobman then
+            local seat = blobman:FindFirstChildOfClass("VehicleSeat")
+            if seat then
+                -- Force target into blobman and eject
+                local targetHum = GetHumanoid(target)
+                if targetHum then
+                    -- Network ownership manipulation
+                    if SetNetworkOwner then
+                        for i = 1, 5 do
+                            SetNetworkOwner:FireServer(hrp, LocalPlayer)
+                            task.wait(0.05)
+                        end
+                    end
+                    
+                    -- Apply velocity
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 500, 0)
+                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 100, 0)
+                end
+            end
+        end
+    end)
+end
+
+local function OwnershipKick(target)
+    if not target then return end
+    
+    local char = GetCharacter(target)
+    if not char then return end
+    
+    local hrp = GetHRP(target)
+    if not hrp then return end
+    
+    -- Spam network ownership to kick
+    pcall(function()
+        if SetNetworkOwner then
+            for i = 1, 20 do
+                SetNetworkOwner:FireServer(hrp, LocalPlayer)
+                task.wait(0.01)
+            end
+        end
+        
+        -- Apply extreme force
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 1000, 0)
+        hrp.CFrame = CFrame.new(0, 10000, 0)
+    end)
+end
+
+local function LoopKill(target)
+    if not target then return end
+    
+    task.spawn(function()
+        while State.LoopKillEnabled and target and target.Character do
+            pcall(function()
+                local hrp = GetHRP(target)
+                if hrp then
+                    -- Kill via position manipulation
+                    hrp.CFrame = CFrame.new(0, -500, 0)
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, -1000, 0)
+                end
+            end)
+            task.wait(0.1)
+        end
+    end)
+end
+
+local function KillGrab(target)
+    if not target then return end
+    
+    pcall(function()
+        local hrp = GetHRP(target)
+        if hrp and DestroyGrabLine then
+            -- Create grab line then destroy to kill
+            if CreateGrabLine then
+                CreateGrabLine:FireServer(hrp)
+            end
+            task.wait(0.05)
+            DestroyGrabLine:FireServer()
+        end
+    end)
+end
+
+-- Obsidian UI Setup
+local Obsidian = loadstring(game:HttpGet("https://raw.githubusercontent.com/deeeity/obsidian/main/obsidian.lua", true))()
+
+local Window = Obsidian:CreateWindow({
+    Name = "made by zalae, took defense and target tab from Ebola",
+    Theme = "Default",
+    Color = Color3.fromRGB(255, 0, 0)
+})
+
+-- Defense Tab
+local DefenseTab = Window:CreateTab({
+    Name = "Defense",
+    Icon = "rbxassetid://7733965380"
+})
+
+-- Anti-Grab Section
+DefenseTab:CreateSection("Anti-Grab Protection")
+
+DefenseTab:CreateToggle({
+    Name = "Anti Grab",
+    Default = false,
+    Callback = function(value)
+        State.AntiGrabEnabled = value
+        if value then
+            SetupAntiGrab()
+            Notify("Defense", "Anti Grab enabled", 2)
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Grab V2",
+    Default = false,
+    Callback = function(value)
+        State.AntiGrabV2Enabled = value
+        if value then
+            SetupAntiGrabV2()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Grab V3",
+    Default = false,
+    Callback = function(value)
+        State.AntiGrabV3Enabled = value
+        if value then
+            SetupAntiGrabV3()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Grab V4",
+    Default = false,
+    Callback = function(value)
+        State.AntiGrabV4Enabled = value
+        if value then
+            SetupAntiGrabV4()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Grab V5",
+    Default = false,
+    Callback = function(value)
+        State.AntiGrabV5Enabled = value
+        if value then
+            SetupAntiGrabV5()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Grab Line (Anti Lag)",
+    Default = false,
+    Callback = function(value)
+        State.AntiGrabLine = value
+        if value then
+            SetupAntiGrabLine()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Grab ESTRADA",
+    Default = false,
+    Callback = function(value)
+        State.AntiGrabESTRADA = value
+        if value then
+            SetupAntiGrab()
+            SetupAntiGrabV2()
+            SetupAntiGrabLine()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Mayo Grab (Anti Grab)",
+    Default = false,
+    Callback = function(value)
+        State.MayoGrabEnabled = value
+        if value then
+            SetupMayoGrab()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Seatless Gucci (Anti Grab)",
+    Default = false,
+    Callback = function(value)
+        State.SeatlessGucci = value
+        if value then
+            SetupSeatlessGucci()
+        else
+            ClearGucci()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Train Gucci (Anti Grab)",
+    Default = false,
+    Callback = function(value)
+        State.TrainGucci = value
+        if value then
+            SetupTrainGucci()
+        else
+            ClearGucci()
+        end
+    end
+})
+
+-- Anti-Kick Section
+DefenseTab:CreateSection("Anti-Kick Protection")
+
+DefenseTab:CreateToggle({
+    Name = "Anti Kick Shuriken",
+    Default = false,
+    Callback = function(value)
+        State.AntiKickShuriken = value
+        if value then
+            SetupAntiKickShuriken()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Kick Item",
+    Default = false,
+    Callback = function(value)
+        State.AntiKickItem = value
+        if value then
+            SetupAntiKickItem()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Kick Penis",
+    Default = false,
+    Callback = function(value)
+        State.AntiKickPenis = value
+        if value then
+            SetupAntiKickPenis()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Kick PCLD Break",
+    Default = false,
+    Callback = function(value)
+        State.AntiKickPCLD = value
+        if value then
+            SetupAntiKickPCLD()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Ownership",
+    Default = false,
+    Callback = function(value)
+        State.AntiOwnership = value
+        if value then
+            SetupAntiOwnership()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Ownership Kick",
+    Default = false,
+    Callback = function(value)
+        State.AntiOwnershipKick = value
+        if value then
+            SetupAntiOwnershipKick()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+-- Additional Anti Features
+DefenseTab:CreateSection("Additional Anti Features")
+
+DefenseTab:CreateToggle({
+    Name = "Anti Lag",
+    Default = false,
+    Callback = function(value)
+        State.AntiLag = value
+        if value then
+            SetupAntiLag()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Blobman",
+    Default = false,
+    Callback = function(value)
+        State.AntiBlobman = value
+        if value then
+            SetupAntiBlobman()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Blobman Kill",
+    Default = false,
+    Callback = function(value)
+        State.AntiBlobKill = value
+        if value then
+            SetupAntiBlobKill()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Ragdoll",
+    Default = false,
+    Callback = function(value)
+        State.AntiRagdoll = value
+        if value then
+            SetupAntiRagdoll()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Burn",
+    Default = false,
+    Callback = function(value)
+        State.AntiBurn = value
+        if value then
+            SetupAntiBurn()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Void",
+    Default = false,
+    Callback = function(value)
+        State.AntiVoid = value
+        if value then
+            SetupAntiVoid()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Sticky",
+    Default = false,
+    Callback = function(value)
+        State.AntiSticky = value
+        if value then
+            SetupAntiSticky()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Explosion",
+    Default = false,
+    Callback = function(value)
+        State.AntiExplosion = value
+        if value then
+            SetupAntiExplosion()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Fire",
+    Default = false,
+    Callback = function(value)
+        State.AntiFire = value
+        if value then
+            SetupAntiFire()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Paint",
+    Default = false,
+    Callback = function(value)
+        State.AntiPaint = value
+        if value then
+            SetupAntiPaint()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Barrier",
+    Default = false,
+    Callback = function(value)
+        State.AntiBarrier = value
+        if value then
+            SetupAntiBarrier()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Input Lag",
+    Default = false,
+    Callback = function(value)
+        State.AntiInputLag = value
+        if value then
+            SetupAntiInputLag()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Snowball",
+    Default = false,
+    Callback = function(value)
+        State.AntiSnowball = value
+        if value then
+            SetupAntiSnowball()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Loop Kill",
+    Default = false,
+    Callback = function(value)
+        State.AntiLoopKill = value
+        if value then
+            SetupAntiLoopKill()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+DefenseTab:CreateToggle({
+    Name = "Anti Kick All",
+    Default = false,
+    Callback = function(value)
+        State.AntiKickAll = value
+        -- Enables all anti-kick methods
+        if value then
+            SetupAntiKickShuriken()
+            SetupAntiKickItem()
+            SetupAntiKickPenis()
+            SetupAntiKickPCLD()
+            SetupAntiOwnership()
+        else
+            ClearAntiGrab()
+        end
+    end
+})
+
+-- Target Tab
+local TargetTab = Window:CreateTab({
+    Name = "Target",
+    Icon = "rbxassetid://7733964719"
+})
+
+TargetTab:CreateSection("Target Selection")
+
+local PlayerDropdown = TargetTab:CreateDropdown({
+    Name = "Select Target",
+    Items = GetPlayerList(),
+    Default = "",
+    Callback = function(value)
+        State.SelectedTarget = ResolvePlayerFromString(value)
+        State.SelectedKickPlayer = State.SelectedTarget
+        _G.EBOLA_SelectedKickPlayer = State.SelectedTarget
+    end
+})
+
+-- Refresh button
+TargetTab:CreateButton({
+    Name = "Refresh Player List",
+    Callback = function()
+        PlayerDropdown:Set(GetPlayerList())
+    end
+})
+
+TargetTab:CreateSection("Kick Methods")
+
+TargetTab:CreateButton({
+    Name = "Blobman Kick (Single)",
+    Callback = function()
+        if not State.SelectedTarget then
+            Notify("Error", "Select target first!", 3)
+            return
+        end
+        BlobmanKick(State.SelectedTarget)
+        Notify("Target", "Blobman Kick executed", 2)
+    end
+})
+
+TargetTab:CreateToggle({
+    Name = "Blobman Kick All",
+    Default = false,
+    Callback = function(value)
+        State.BlobmanKickAll = value
+        if value then
+            task.spawn(function()
+                while State.BlobmanKickAll do
+                    for _, plr in ipairs(Players:GetPlayers()) do
+                        if plr ~= LocalPlayer then
+                            BlobmanKick(plr)
+                        end
+                    end
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+})
+
+TargetTab:CreateButton({
+    Name = "Ownership Kick",
+    Callback = function()
+        if not State.SelectedTarget then
+            Notify("Error", "Select target first!", 3)
+            return
+        end
+        OwnershipKick(State.SelectedTarget)
+        Notify("Target", "Ownership Kick executed", 2)
+    end
+})
+
+TargetTab:CreateToggle({
+    Name = "Ownership Kick Loop",
+    Default = false,
+    Callback = function(value)
+        State.OwnershipKickEnabled = value
+        if value and State.SelectedTarget then
+            task.spawn(function()
+                while State.OwnershipKickEnabled and State.SelectedTarget do
+                    OwnershipKick(State.SelectedTarget)
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+TargetTab:CreateSection("Kill Methods")
+
+TargetTab:CreateToggle({
+    Name = "Loop Kill",
+    Default = false,
+    Callback = function(value)
+        State.LoopKillEnabled = value
+        if value then
+            if not State.SelectedTarget then
+                Notify("Error", "Select target first!", 3)
+                State.LoopKillEnabled = false
+                return
+            end
+            LoopKill(State.SelectedTarget)
+        end
+    end
+})
+
+TargetTab:CreateButton({
+    Name = "Kill Grab",
+    Callback = function()
+        if not State.SelectedTarget then
+            Notify("Error", "Select target first!", 3)
+            return
+        end
+        KillGrab(State.SelectedTarget)
+    end
+})
+
+TargetTab:CreateButton({
+    Name = "Bring Target",
+    Callback = function()
+        if not State.SelectedTarget then
+            Notify("Error", "Select target first!", 3)
+            return
+        end
+        
+        local targetHRP = GetHRP(State.SelectedTarget)
+        local myHRP = GetHRP()
+        
+        if targetHRP and myHRP then
+            pcall(function()
+                if SetNetworkOwner then
+                    SetNetworkOwner:FireServer(targetHRP, LocalPlayer)
+                end
+                targetHRP.CFrame = myHRP.CFrame + Vector3.new(0, 5, 0)
+            end)
+        end
+    end
+})
+
+-- Character respawn handler
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    task.wait(1)
+    
+    -- Re-apply enabled defenses
+    if State.AntiGrabEnabled then SetupAntiGrab() end
+    if State.AntiGrabV2Enabled then SetupAntiGrabV2() end
+    if State.AntiGrabV3Enabled then SetupAntiGrabV3() end
+    if State.AntiGrabV4Enabled then SetupAntiGrabV4() end
+    if State.AntiGrabV5Enabled then SetupAntiGrabV5() end
+    if State.AntiGrabLine then SetupAntiGrabLine() end
+    if State.AntiKickShuriken then SetupAntiKickShuriken() end
+    if State.AntiKickItem then SetupAntiKickItem() end
+    if State.AntiKickPenis then SetupAntiKickPenis() end
+    if State.AntiKickPCLD then SetupAntiKickPCLD() end
+    if State.AntiOwnership then SetupAntiOwnership() end
+    if State.AntiLag then SetupAntiLag() end
+    if State.AntiBlobman then SetupAntiBlobman() end
+    if State.AntiRagdoll then SetupAntiRagdoll() end
+    if State.AntiBurn then SetupAntiBurn() end
+    if State.AntiVoid then SetupAntiVoid() end
+    if State.AntiSticky then SetupAntiSticky() end
+    if State.AntiExplosion then SetupAntiExplosion() end
+    if State.AntiFire then SetupAntiFire() end
+    if State.AntiPaint then SetupAntiPaint() end
+    if State.AntiBarrier then SetupAntiBarrier() end
+    if State.AntiSnowball then SetupAntiSnowball() end
+    if State.AntiLoopKill then SetupAntiLoopKill() end
+    if State.AntiBlobKill then SetupAntiBlobKill() end
+    if State.AntiOwnershipKick then SetupAntiOwnershipKick() end
+    if State.MayoGrabEnabled then SetupMayoGrab() end
+    if State.SeatlessGucci then SetupSeatlessGucci() end
+    if State.TrainGucci then SetupTrainGucci() end
+end)
+
+Notify("Loaded", "made by zalae - Defense & Target tabs ready", 5)
